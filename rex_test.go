@@ -522,7 +522,7 @@ func TestRexJSONObjectsOfObjects(t *testing.T) {
 }`
 	blue("Running: " + iAm() + " Using packEverything")
 	text = RexJSONCleanup(source, UnnamedJSONObjectRex, packEverything)
-	text = removeBlackLines(text)
+	text = removeBlankLines(text)
 	text = removeTrailingSpaces(text)
 	if text != packAllExpect {
 		green(packAllExpect)

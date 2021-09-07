@@ -110,7 +110,7 @@ var (
 	arrayChainRex        = regexp.MustCompile(`((?sm).*?^ *\],)\n *((?s)\[.*)`) // find `],\n +[`
 )
 
-func removeBlackLines(src string) string {
+func removeBlankLines(src string) string {
 	return RexReplace(src, blankLinesRex, func(x []string, rx *regexp.Regexp, rf RexFunc) string {
 		return x[1] + RexReplace(x[2], rx, rf)
 	})

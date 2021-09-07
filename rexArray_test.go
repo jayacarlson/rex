@@ -200,7 +200,7 @@ func TestRexJSONCleanupArrays_PackEverything(t *testing.T) {
 	// RexJSONCleanup(arrayText, UnnamedJSONObjectRex, packEverything) could be used, but packEverything does the same,
 	// but without the removing / adding of lead spacing -- but also then adds a leading '\n' which needs removal
 	text := packEverything(arrayText)
-	text = removeBlackLines(text[1:])
+	text = removeBlankLines(text[1:])
 	text = RexJSONCleanup(text, UnnamedJSONObjectRex, concatArrays)
 	if text != expected {
 		green(expected)

@@ -37,6 +37,23 @@ import (
 		to process the text. The RexFunc usually just calls itself for further
 		processing until the regexp fails.  See PackLines for an example.
 
+	RexGather:
+		Used to gather up text that matches a regular expression using a GatherFunc & regexp
+		to process the text. The GatherFunc usually just calls itself for further
+		processing until the regexp fails.  RexGather expects the regexp to generate
+		the []string in the following format:
+			x[1] == all leading text -- not modified
+			x[2] == text matching the regexp
+			x[3] == trailing text, passed back into RexGather
+
+		Sample that grabs things and places them in a semi-colon seperated list:
+
+		gathered = RexGather(src, regExp, func(g string, x []string, rx *regexp.Regexp, rf GatherFunc) string {
+			return x[1] + "; " + RexGather(x[2], gather, rx, rf)
+		})
+		-- gathered could then have any trailing "; " removed
+		-- gathered could then be searched for unique entries if needed
+
 	RexCleanup:
 		Used to recursivly process text for re-formatting using a RexFunc & regexp
 		to process the text. The RexFunc usually just calls itself for further
@@ -96,6 +113,7 @@ import (
 
 type CleanerFunc func(string) string
 type RexFunc func([]string, *regexp.Regexp, RexFunc) string
+type GatherFunc func([]string, *regexp.Regexp, GatherFunc)
 
 var (
 	// Capture Named objects / arrays
@@ -140,6 +158,12 @@ func RexReplace(src string, rx *regexp.Regexp, rf RexFunc) string {
 		src = rf(x, rx, rf)
 	}
 	return src
+}
+
+func RexGather(src string, rx *regexp.Regexp, gf GatherFunc) {
+	if x := rx.FindStringSubmatch(src); x != nil {
+		gf(x, rx, gf)
+	}
 }
 
 // regexp must extract data as x[1]: lead data  x[2]: SubBlock  x[3]: tail data

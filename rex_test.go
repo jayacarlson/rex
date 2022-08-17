@@ -7,6 +7,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/jayacarlson/dbg"
+	"github.com/jayacarlson/tst"
 )
 
 type (
@@ -49,6 +52,35 @@ type (
 	}
 )
 
+var (
+	testText string // json.Marshal generated test object
+
+	// Extract the "verts" array at depth for cleanup, returning a list of unnamed objects
+	vertsArrayRex = regexp.MustCompile(`((?sm).*?^ +"verts": \[\n)((?s).*?)((?sm)^ +\].*)`)
+	// Do chaining of object following object:  }, {
+	objectChainRex = regexp.MustCompile(`((?sm).*?^ *},)\n *((?s){.*)`)
+	// Pack lead object in array of objects: [ {
+	arrayOfObjRex = regexp.MustCompile(`((?sm).*?"\w+": \[)\n +({)((?s).*)`)
+)
+
+func TestVerifyJSONMarshalling(t *testing.T) {
+	testObject := objects{}
+	testObject.Verticies = make([]vert, 3)
+
+	b, _ := json.MarshalIndent(testObject, "", "  ")
+	testText = string(b)
+
+	// testText ends up being over 100 lines long, lets not have all that crap here
+	expected := "1c90047f4653f48dd6204c3a9e059e83"
+	md5Sum := fmt.Sprintf("%x", md5.Sum(b))
+	if md5Sum != expected {
+		tst.AsYellow(testText)
+		tst.Failed(t, dbg.IAm(), "JSON package change to marshalling")
+	} else {
+		tst.Passed(t, "", dbg.IAm())
+	}
+}
+
 func TestRexJSONCleanupNamedPack(t *testing.T) {
 	// Only process the 'location' and 'orientation' objects, no other "named" objects
 	limitedObjRex := regexp.MustCompile(`((?s).*? +"(?:location|orientation)": {)\n((?sm).+?^) +((?s)}.*)`)
@@ -71,43 +103,14 @@ func TestRexJSONCleanupNamedPack(t *testing.T) {
     3
   ]
 }`
-	blue("Running: " + iAm())
 	b, _ := json.MarshalIndent(obj, "", "  ")
 	text := RexJSONCleanup(string(b), limitedObjRex, PackLines)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
-	}
-}
-
-var (
-	testText string // json.Marshal generated test object
-
-	// Extract the "verts" array at depth for cleanup, returning a list of unnamed objects
-	vertsArrayRex = regexp.MustCompile(`((?sm).*?^ +"verts": \[\n)((?s).*?)((?sm)^ +\].*)`)
-	// Do chaining of object following object:  }, {
-	objectChainRex = regexp.MustCompile(`((?sm).*?^ *},)\n *((?s){.*)`)
-	// Pack lead object in array of objects: [ {
-	arrayOfObjRex = regexp.MustCompile(`((?sm).*?"\w+": \[)\n +({)((?s).*)`)
-)
-
-func TestVerifyJSONMarshalling(t *testing.T) {
-	testObject := objects{}
-	testObject.Verticies = make([]vert, 3)
-
-	blue("Running: " + iAm())
-	b, _ := json.MarshalIndent(testObject, "", "  ")
-	testText = string(b)
-
-	// testText ends up being over 100 lines long, lets not have all that crap here
-	expected := "1c90047f4653f48dd6204c3a9e059e83"
-	md5Sum := fmt.Sprintf("%x", md5.Sum(b))
-	if md5Sum != expected {
-		yellow(testText)
-		green(expected)
-		red(md5Sum)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }
 
@@ -150,7 +153,6 @@ func TestRexJSONSimpleArrayOfObjects(t *testing.T) {
     ]
   }
 }`
-	blue("Running: " + iAm())
 	cleanVerts := func(src string) string {
 		return RexJSONCleanup(src, UnnamedJSONObjectRex, func(s string) string {
 			return "\n" + RexJSONCleanup(s, NamedJSONObjectRex, PackLines)
@@ -159,9 +161,11 @@ func TestRexJSONSimpleArrayOfObjects(t *testing.T) {
 
 	text := RexJSONCleanup(testText, vertsArrayRex, cleanVerts)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }
 
@@ -200,7 +204,6 @@ func TestRexJSONChainedObjects(t *testing.T) {
     ]
   }
 }`
-	blue("Running: " + iAm())
 	cleanVerts := func(src string) string {
 		r := RexJSONCleanup(src, UnnamedJSONObjectRex, func(s string) string {
 			return "\n" + RexJSONCleanup(s, NamedJSONObjectRex, PackLines)
@@ -212,10 +215,13 @@ func TestRexJSONChainedObjects(t *testing.T) {
 
 	text := RexJSONCleanup(testText, vertsArrayRex, cleanVerts)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+		tst.AsYellow(" Further tests aborted ")
 		return
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 
 	expected = `{
@@ -250,15 +256,16 @@ func TestRexJSONChainedObjects(t *testing.T) {
     ]
   }
 }`
-	blue("Running: " + iAm() + " ExtraPacking")
 
 	text = RexReplace(text, arrayOfObjRex, func(x []string, rx *regexp.Regexp, rf RexFunc) string {
 		return x[1] + " " + x[2] + RexReplace(x[3], rx, rf)
 	})
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm()+" ExtraPacking", "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm()+" ExtraPacking")
 	}
 }
 
@@ -289,7 +296,6 @@ func TestRexJSONTightPacking(t *testing.T) {
     ]
   }
 }`
-	blue("Running: " + iAm())
 	cleanVerts := func(src string) string {
 		// This will only pad out correctly if the json.Marshal uses 2 spaces for indent
 		return RexJSONCleanupPost(src, UnnamedJSONObjectRex, func(s string) string {
@@ -300,9 +306,11 @@ func TestRexJSONTightPacking(t *testing.T) {
 	}
 	text := RexJSONCleanup(testText, vertsArrayRex, cleanVerts)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }
 
@@ -321,7 +329,6 @@ func TestRexJSONJustPackLines(t *testing.T) {
     ]
   }
 }`
-	blue("Running: " + iAm())
 	cleanVerts := func(src string) string {
 		return RexJSONCleanup(src, UnnamedJSONObjectRex, func(s string) string {
 			return PackLines(RexJSONCleanup(s, NamedJSONObjectRex, PackLines))
@@ -330,9 +337,11 @@ func TestRexJSONJustPackLines(t *testing.T) {
 
 	text := RexJSONCleanup(testText, vertsArrayRex, cleanVerts)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }
 
@@ -482,14 +491,15 @@ func TestRexJSONObjectsOfObjects(t *testing.T) {
 
 	source = fixEmptyObjectsAndArrays(source)
 
-	blue("Running: " + iAm())
 	text := RexJSONCleanup(source, objOfObjRex, padPackMaxSubObjects)
 	text = RexJSONCleanup(text, objOfSubObjRex, padPackObjsDepth2)
 	text = removeTrailingSpaces(text)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 
 	packAllExpect := `{
@@ -520,13 +530,14 @@ func TestRexJSONObjectsOfObjects(t *testing.T) {
     }
   }
 }`
-	blue("Running: " + iAm() + " Using packEverything")
 	text = RexJSONCleanup(source, UnnamedJSONObjectRex, packEverything)
 	text = removeBlankLines(text)
 	text = removeTrailingSpaces(text)
 	if text != packAllExpect {
-		green(packAllExpect)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm()+" Using packEverything", "Expected in green, genereted in red")
+		tst.AsGreen(packAllExpect)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm()+" Using packEverything")
 	}
 }

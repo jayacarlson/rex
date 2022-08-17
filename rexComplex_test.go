@@ -3,6 +3,9 @@ package rex
 import (
 	"regexp"
 	"testing"
+
+	"github.com/jayacarlson/dbg"
+	"github.com/jayacarlson/tst"
 )
 
 var complexSource = `{
@@ -200,8 +203,6 @@ func TestComplexJSON(t *testing.T) {
 	albumSaveRex := regexp.MustCompile(`((?sm).*?^  "save-album": )((?sm).*)`)
 	tracksRex := regexp.MustCompile(`((?sm).*?^  "tracks": \[\n)((?s).*?)((?sm)^  \].*)`)
 
-	blue("Running: " + iAm())
-
 	text := RexJSONCleanup(complexSource, tracksRex, cleanTrack)
 	text = removeExtraSpaces(text)
 	if x := artistRex.FindStringSubmatch(text); x != nil {
@@ -224,8 +225,10 @@ func TestComplexJSON(t *testing.T) {
 	}
 
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }

@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/jayacarlson/dbg"
+	"github.com/jayacarlson/tst"
 )
 
 type arrays struct {
@@ -118,7 +121,6 @@ func TestRexJSONCleanupArraysOfArrays(t *testing.T) {
 			},
 		},
 	}
-	blue("Running: " + iAm())
 	b, _ := json.MarshalIndent(numbers, "", "  ")
 	arrayText = string(b)
 
@@ -126,10 +128,10 @@ func TestRexJSONCleanupArraysOfArrays(t *testing.T) {
 	expected := "d17b96bf21f37133432b7091664b1967"
 	md5Sum := fmt.Sprintf("%x", md5.Sum(b))
 	if md5Sum != expected {
-		yellow(arrayText)
-		green(expected)
-		red(md5Sum)
-		t.Fail()
+		tst.AsYellow(arrayText)
+		tst.Failed(t, dbg.IAm(), "JSON package change to marshalling")
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }
 
@@ -196,15 +198,16 @@ func TestRexJSONCleanupArrays_PackEverything(t *testing.T) {
           [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
   ] ] ] ]
 }`
-	blue("Running: " + iAm())
 	// RexJSONCleanup(arrayText, UnnamedJSONObjectRex, packEverything) could be used, but packEverything does the same,
 	// but without the removing / adding of lead spacing -- but also then adds a leading '\n' which needs removal
 	text := packEverything(arrayText)
 	text = removeBlankLines(text[1:])
 	text = RexJSONCleanup(text, UnnamedJSONObjectRex, concatArrays)
 	if text != expected {
-		green(expected)
-		red(text)
-		t.Fail()
+		tst.Failed(t, dbg.IAm(), "Expected in green, genereted in red")
+		tst.AsGreen(expected)
+		tst.AsRed(text)
+	} else {
+		tst.Passed(t, "", dbg.IAm())
 	}
 }
